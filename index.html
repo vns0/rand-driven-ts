@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slot Machine</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+      font-family: Arial, sans-serif;
+    }
+
+    .slot-machine {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 24px;
+      font-weight: bold;
+      background-color: #fff;
+      border: 2px solid #ddd;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .reel-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .reel {
+      width: 50px;
+      height: 100px;
+      border: 2px solid black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px;
+      overflow: hidden;
+      background-color: #fff;
+    }
+
+    .reel .numbers {
+      animation: spin 3s 3s;
+    }
+
+    .reveal {
+      animation: reveal 1s 1 3s forwards;
+    }
+
+    @keyframes reveal {
+      to { opacity: 1; }
+    }
+
+    .balance {
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      font-size: 18px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+<div class="slot-machine">
+  <div class="balance">Баланс: <span id="balanceAmount">1000</span> монет</div>
+  <div class="reel-container">
+    <div class="reel">
+      <div class="numbers" id="reel1"></div>
+    </div>
+    <div class="reel">
+      <div class="numbers" id="reel2"></div>
+    </div>
+    <div class="reel">
+      <div class="numbers" id="reel3"></div>
+    </div>
+  </div>
+
+  <button id="spinButton">Крутить</button>
+</div>
+
+<script>
+  let balance = 1000;
+  const spinCost = 100;
+
+  const reel1Values = [
+    { number: 1, probability: 0.2 },
+    { number: 2, probability: 0.15 },
+    { number: 3, probability: 0.1 },
+    { number: 4, probability: 0.1 },
+    { number: 5, probability: 0.1 },
+    { number: 6, probability: 0.1 },
+    { number: 7, probability: 0.1 },
+    { number: 8, probability: 0.05 },
+    { number: 9, probability: 0.05 },
+    { number: 10, probability: 0.05 },
+  ];
+
+  const reel2Values = [
+    { number: 1, probability: 0.2 },
+    { number: 2, probability: 0.1 },
+    { number: 3, probability: 0.1 },
+    { number: 4, probability: 0.1 },
+    { number: 5, probability: 0.1 },
+    { number: 6, probability: 0.1 },
+    { number: 7, probability: 0.1 },
+    { number: 8, probability: 0.1 },
+    { number: 9, probability: 0.1 },
+    { number: 10, probability: 0.1 },
+  ];
+
+  const reel3Values = [
+    { number: 1, probability: 0.2 },
+    { number: 2, probability: 0.1 },
+    { number: 3, probability: 0.1 },
+    { number: 4, probability: 0.1 },
+    { number: 5, probability: 0.1 },
+    { number: 6, probability: 0.1 },
+    { number: 7, probability: 0.1 },
+    { number: 8, probability: 0.1 },
+    { number: 9, probability: 0.1 },
+    { number: 10, probability: 0.1 },
+  ];
+
+  function weightedRandomNumber(weightedNumbers) {
+    const totalProbability = weightedNumbers.reduce((acc, wn) => acc + wn.probability, 0);
+
+    // Нормализация вероятностей, если их сумма не равна 1
+    const normalizedProbabilities = weightedNumbers.map((wn) => wn.probability / totalProbability);
+
+    // Генерируем случайное число от 0 до 1
+    const randomValue = Math.random();
+
+    let cumulativeProbability = 0;
+    for (let i = 0; i < normalizedProbabilities.length; i++) {
+      cumulativeProbability += normalizedProbabilities[i];
+      if (randomValue <= cumulativeProbability) {
+        return weightedNumbers[i].number;
+      }
+    }
+
+    // Если не удалось выбрать число (обычно это происходит из-за округлений), вернуть последний элемент
+    return weightedNumbers[weightedNumbers.length - 1].number;
+  }
+
+  function checkWin(result) {
+    if (result[0] === result[1] && result[1] === result[2]) {
+      balance *= 2; // Удваиваем баланс при одинаковых числах на всех барабанах
+    } else if (
+            (result[0] + 1 === result[1] && result[1] + 1 === result[2]) ||
+            (result[0] - 1 === result[1] && result[1] - 1 === result[2])
+    ) {
+      balance *= 2; // Удваиваем баланс при последовательных числах на всех барабанах
+    }
+  }
+
+  function updateBalance() {
+    const balanceElement = document.getElementById('balanceAmount');
+    balanceElement.textContent = balance.toString();
+  }
+
+  function animateReels() {
+    const reel1 = document.getElementById('reel1');
+    const reel2 = document.getElementById('reel2');
+    const reel3 = document.getElementById('reel3');
+
+    const animationDuration = 3000; // Продолжительность анимации в миллисекундах
+    const framesPerSecond = 60; // Количество кадров в секунду
+    const totalFrames = animationDuration / 1000 * framesPerSecond; // Общее количество кадров
+    const interval = animationDuration / totalFrames; // Интервал между кадрами
+
+    let frame = 0;
+
+    const animationInterval = setInterval(() => {
+      reel1.textContent = weightedRandomNumber(reel1Values);
+      reel2.textContent = weightedRandomNumber(reel2Values);
+      reel3.textContent = weightedRandomNumber(reel3Values);
+
+      frame++;
+
+      if (frame === totalFrames) {
+        clearInterval(animationInterval);
+        stopSpinning();
+      }
+    }, interval);
+  }
+
+  function stopSpinning() {
+    const reel1 = document.getElementById('reel1');
+    const reel2 = document.getElementById('reel2');
+    const reel3 = document.getElementById('reel3');
+
+    reel1.classList.add('reveal');
+    reel2.classList.add('reveal');
+    reel3.classList.add('reveal');
+
+    setTimeout(() => {
+      reel1.classList.remove('reveal');
+      reel2.classList.remove('reveal');
+      reel3.classList.remove('reveal');
+
+      const result = [
+        parseInt(reel1.textContent),
+        parseInt(reel2.textContent),
+        parseInt(reel3.textContent),
+      ];
+
+      checkWin(result);
+      updateBalance();
+
+      document.getElementById('spinButton').disabled = false;
+    }, 1000);
+  }
+
+  document.getElementById('spinButton').addEventListener('click', () => {
+    const spinButton = document.getElementById('spinButton');
+    if (balance >= spinCost && !spinButton.disabled) {
+      spinButton.disabled = true; // Блокируем кнопку на время прокрутки
+      balance -= spinCost;
+      updateBalance();
+
+      animateReels();
+    } else if (spinButton.disabled) {
+      alert('Пожалуйста, дождитесь окончания прокрутки барабанов.');
+    } else {
+      alert('У вас недостаточно монет для кручения. Пополните баланс!');
+    }
+  });
+</script>
+</body>
+</html>
